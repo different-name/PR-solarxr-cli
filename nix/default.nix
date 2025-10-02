@@ -1,4 +1,5 @@
 {
+  pkgs,
   lib,
   rustPlatform,
 }:
@@ -9,12 +10,16 @@ rustPlatform.buildRustPackage {
   src = ../.;
   cargoLock.lockFile = ../Cargo.lock;
 
-  # Use cargo-make so clap can generate shell completions during the build
-  buildPhase = ''
-    runHook preBuild
-    cargo make install build
-    runHook postBuild
-  '';
+  nativeBuildInputs = [
+    (pkgs.writeShellScriptBin "cargo" ''
+      if [[ "$#" -ge 1 && "$1" == "build" ]]; then
+        shift 1
+        exec ${pkgs.cargo}/bin/cargo make install build -- "$@"
+      else
+        exec ${pkgs.cargo}/bin/cargo "$@"
+      fi
+    '')
+  ];
 
   installPhase = ''
     runHook preInstall
